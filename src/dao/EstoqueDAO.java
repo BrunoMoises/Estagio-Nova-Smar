@@ -10,40 +10,29 @@ import java.util.ArrayList;
 
 public class EstoqueDAO {
 
-    Connection conexao;
+    private static Connection conexao;
+
+    private static void estabelecerConexao() throws SQLException, ClassNotFoundException {
+        EstoqueDAO.conexao = Conexao.getConexao();
+    }
 
     public EstoqueDAO() {
         this.conexao = Conexao.getConexao();
     }
 
-    public void adicionar(Estoque estoque) {
+    public static void adicionar(Estoque estoque) throws SQLException, ClassNotFoundException {
         //Adicionar um novo elemento.
+        estabelecerConexao();
         PreparedStatement estado;
         ResultSet resultadoBusca;
         ArrayList<Estoque> listaEstoqueCadastrados = null;
-        try {
-            estado = this.conexao.prepareStatement("select * from estoque");
-            resultadoBusca = estado.executeQuery();
-            listaEstoqueCadastrados = new ArrayList();
-            while (resultadoBusca.next()) {
-                Estoque estoqueAntigo = new Estoque();
-                estoqueAntigo.setCodigo(resultadoBusca.getString("codigo"));
-                estoqueAntigo.setProduto(resultadoBusca.getString("produto"));
-                estoqueAntigo.setValor(resultadoBusca.getFloat("valor"));
-                estoqueAntigo.setQtdeProduto(resultadoBusca.getInt("qtdeProduto"));
-                listaEstoqueCadastrados.add(estoqueAntigo);
-            }
-            resultadoBusca.close();
-            estado.close();
-        } catch (SQLException ex) {
-            System.out.println("\n Erro Conexão: " + ex.toString());
-        }
-        for (Estoque listaEstoqueCadastrado : listaEstoqueCadastrados) {
-            if (listaEstoqueCadastrado.getCodigo().equals(estoque.getCodigo())) {
-                int novaQtde = listaEstoqueCadastrado.getQtdeProduto() + estoque.getQtdeProduto();
+        listaEstoqueCadastrados = buscarTodosProdutos();
+        for (int i = 0; i < listaEstoqueCadastrados.size(); i++) {
+            if (listaEstoqueCadastrados.get(i).getCodigo().equals(estoque.getCodigo())) {
+                int novaQtde = listaEstoqueCadastrados.get(i).getQtdeProduto() + estoque.getQtdeProduto();
                 String msgSQL = "update estoque set qtdeProduto=? where codigo=?";
                 try {
-                    estado = this.conexao.prepareStatement(msgSQL);
+                    estado = EstoqueDAO.conexao.prepareStatement(msgSQL);
                     estado.setInt(1, novaQtde);
                     estado.setString(2, estoque.getCodigo());
                     estado.execute();
@@ -55,7 +44,7 @@ public class EstoqueDAO {
             } else {
                 String msgSQL = "insert into estoque(codigo,produto,valor,qtdeProduto) values(?,?,?,?)";
                 try {
-                    estado = this.conexao.prepareStatement(msgSQL);
+                    estado = EstoqueDAO.conexao.prepareStatement(msgSQL);
                     estado.setString(1, estoque.getCodigo());
                     estado.setString(2, estoque.getProduto());
                     estado.setFloat(3, estoque.getValor());
@@ -70,12 +59,13 @@ public class EstoqueDAO {
         }
     }
 
-    public ArrayList<Estoque> buscarCodigo(String codigo) {//Busca por um codigo específico.
+    public static ArrayList<Estoque> buscarCodigo(String codigo) {//Busca por um codigo específico.
         PreparedStatement estado;
         ResultSet resultadoBusca;
         ArrayList<Estoque> listaEstoqueCadastrados = null;
         try {
-            estado = this.conexao.prepareStatement("select * from estoque where codigo = ?");
+            String msgSQL = ("select * from estoque where codigo = ?");
+            estado = EstoqueDAO.conexao.prepareStatement(msgSQL);
             estado.setString(1, codigo);
             resultadoBusca = estado.executeQuery();
             listaEstoqueCadastrados = new ArrayList();
@@ -95,75 +85,71 @@ public class EstoqueDAO {
         return (listaEstoqueCadastrados);
     }
 
-    public ArrayList<Estoque> buscarTodosProdutos() {
+    public static ArrayList<Estoque> buscarTodosProdutos() throws SQLException, ClassNotFoundException {
+        estabelecerConexao();
         PreparedStatement estado;
         ResultSet resultadoBusca;
         ArrayList<Estoque> listaEstoqueCadastrados = null;
-        try {
-            estado = this.conexao.prepareStatement("select * from estoque");
-            resultadoBusca = estado.executeQuery();
-            listaEstoqueCadastrados = new ArrayList();
-            while (resultadoBusca.next()) {
-                Estoque estoque = new Estoque();
-                estoque.setCodigo(resultadoBusca.getString("codigo"));
-                estoque.setProduto(resultadoBusca.getString("produto"));
-                estoque.setValor(resultadoBusca.getFloat("valor"));
-                estoque.setQtdeProduto(resultadoBusca.getInt("qtdeProduto"));
-                listaEstoqueCadastrados.add(estoque);
-            }
-            resultadoBusca.close();
-            estado.close();
-        } catch (SQLException ex) {
-            System.out.println("\n Erro Conexão: " + ex.toString());
+        String operacao = "select * from estoque";
+        estado = EstoqueDAO.conexao.prepareStatement(operacao);
+        resultadoBusca = estado.executeQuery();
+        resultadoBusca = estado.executeQuery();
+        listaEstoqueCadastrados = new ArrayList();
+        while (resultadoBusca.next()) {
+            Estoque estoque = new Estoque();
+            estoque.setCodigo(resultadoBusca.getString("codigo"));
+            estoque.setProduto(resultadoBusca.getString("produto"));
+            estoque.setValor(resultadoBusca.getFloat("valor"));
+            estoque.setQtdeProduto(resultadoBusca.getInt("qtdeProduto"));
+            listaEstoqueCadastrados.add(estoque);
         }
+        resultadoBusca.close();
+        estado.close();
         return (listaEstoqueCadastrados);
     }
 
-    public int vender(String codigo, int qtde) {
+    public static int vender(String codigo, int qtde) throws SQLException, ClassNotFoundException {
         PreparedStatement estado;
         ResultSet resultadoBusca;
         ArrayList<Estoque> listaEstoqueCadastrados = null;
-        try {
-            estado = this.conexao.prepareStatement("select * from estoque");
-            resultadoBusca = estado.executeQuery();
-            listaEstoqueCadastrados = new ArrayList();
-            while (resultadoBusca.next()) {
-                Estoque estoque = new Estoque();
-                estoque.setCodigo(resultadoBusca.getString("codigo"));
-                estoque.setProduto(resultadoBusca.getString("produto"));
-                estoque.setValor(resultadoBusca.getFloat("valor"));
-                estoque.setQtdeProduto(resultadoBusca.getInt("qtdeProduto"));
-                listaEstoqueCadastrados.add(estoque);
+        listaEstoqueCadastrados = buscarTodosProdutos();
+        Estoque estoque = new Estoque();
+        for (int i = 0; i < listaEstoqueCadastrados.size(); i++) {
+            if (listaEstoqueCadastrados.get(i).getCodigo().equals(codigo)) {
+                if (listaEstoqueCadastrados.get(i).getQtdeProduto() == 0) {
+                    return 0;
+                } else if (listaEstoqueCadastrados.get(i).getQtdeProduto() < qtde) {
+                    return 0;
+                }
+                else {
+                    estoque = listaEstoqueCadastrados.get(i);
+                }
             }
-            resultadoBusca.close();
+        }
+        int novaQtde = estoque.getQtdeProduto() - qtde;
+        String msgSQL = "update estoque set qtdeProduto=? where codigo=?";
+        try {
+            estado = EstoqueDAO.conexao.prepareStatement(msgSQL);
+            estado.setInt(1, novaQtde);
+            estado.setString(2, codigo);
+            estado.execute();
             estado.close();
+            System.out.print("\n Informação atualizada com sucesso!");
         } catch (SQLException ex) {
             System.out.println("\n Erro Conexão: " + ex.toString());
         }
-        for (Estoque listaEstoqueCadastrado : listaEstoqueCadastrados) {
-            if (listaEstoqueCadastrado.getCodigo().equals(codigo)) {
-                if ((listaEstoqueCadastrado.getQtdeProduto() == 0) || (listaEstoqueCadastrado.getQtdeProduto() < qtde)) {
-                    return 0;
-                } else {
-                    int novaQtde = listaEstoqueCadastrado.getQtdeProduto() - qtde;
-                    String msgSQL = "update estoque set qtdeProduto=? where codigo=?";
-                    try {
-                        estado = this.conexao.prepareStatement(msgSQL);
-                        estado.setInt(1, novaQtde);
-                        estado.setString(2, codigo);
-                        estado.execute();
-                        estado.close();
-                        System.out.print("\n Informação atualizada com sucesso!");
-                    } catch (SQLException ex) {
-                        System.out.println("\n Erro Conexão: " + ex.toString());
-                    }
-                    return 1;
-                }
-            }
-            else {
-                return 0;
-            }
+        return 1;
+    }
+
+    public static float saldo() throws SQLException, ClassNotFoundException {
+        PreparedStatement estado;
+        ResultSet resultadoBusca;
+        float saldo = 0;
+        ArrayList<Estoque> listaEstoqueCadastrados = null;
+        listaEstoqueCadastrados = buscarTodosProdutos();
+        for (int i = 0; i < listaEstoqueCadastrados.size(); i++) {
+            saldo = saldo + listaEstoqueCadastrados.get(i).getValor();
         }
-        return 0;
+        return saldo;
     }
 }
